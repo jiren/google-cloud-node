@@ -395,14 +395,19 @@ GrpcService.prototype.requestStream = function(protoOpts, reqOpts) {
     }
   }, protoOpts.retryOpts);
 
-  return retryRequest(null, retryOpts)
+  var reqStream = retryRequest(null, retryOpts)
     .on('error', function(err) {
       var grpcError = GrpcService.decorateError_(err);
 
       stream.destroy(grpcError || err);
     })
     .on('request', stream.emit.bind(stream, 'request'))
-    .pipe(stream);
+
+  stream.on('end', function(){
+    reqStream.abort();
+  });
+
+  return reqStream.pipe(stream);
 };
 
 /**
